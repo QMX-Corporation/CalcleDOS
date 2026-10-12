@@ -1,0 +1,52 @@
+name: Automated Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install Toolchain (LLVM & MinGW Binutils)
+      run: |
+        winget install --id LLVM.LLVM --exact --silent --accept-source-agreements --accept-package-agreements
+        winget install --id msys2.msys2 --exact --silent --accept-source-agreements --accept-package-agreements
+        C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-ucrt-x86_64-binutils"
+
+    - name: Build Release Binary
+      shell: pwsh
+      run: |
+        $env:PATH += ";C:\Program Files\LLVM\bin;C:\msys64\ucrt64\bin"
+        New-Item -ItemType Directory -Force -Path build | Out-Null
+        
+        foreach ($file in Get-ChildItem -Recurse -Filter "*.c") {
+          clang -O3 -fno-builtin -fno-rtti -c $file.FullName -o "build\$($file.BaseName).o"
+        }
+        foreach ($file in Get-ChildItem -Recurse -Filter "*.S") {
+          as $file.FullName -o "build\$($file.BaseName).o"
+        }
+        
+        $objs = Get-ChildItem "build\*.o" | Select-Object -ExpandProperty FullName
+        if ($objs) { lld-link /OUT:DOS-Calcle.exe $objs }
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: DOS-Calcle.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

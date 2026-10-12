@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install LLVM and MinGW (GNU Assembler)
+        run: |
+          winget install --id LLVM.LLVM --exact --silent --accept-source-agreements --accept-package-agreements
+          winget install --id msys2.msys2 --exact --silent --accept-source-agreements --accept-package-agreements
+          C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-ucrt-x86_64-binutils"
+
+      - name: Compile and Link CalcleDOS
+        shell: pwsh
+        run: |
+          $env:PATH += ";C:\Program Files\LLVM\bin;C:\msys64\ucrt64\bin"
+          
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+
+          $cFiles = Get-ChildItem -Recurse -Filter "*.c"
+          foreach ($file in $cFiles) {
+            $outFile = "build\$($file.BaseName).o"
+            clang -O3 -fno-builtin -c $file.FullName -o $outFile
+          }
+
+          $sFiles = Get-ChildItem -Recurse -Filter "*.S"
+          foreach ($file in $sFiles) {
+            $outFile = "build\$($file.BaseName).o"
+            as $file.FullName -o $outFile
+          }
+
+          $csFiles = Get-ChildItem -Recurse -Filter "*.cs"
+          foreach ($file in $csFiles) {
+            dotnet build $file.FullName -c Release /p:OutputPath="$PWD\build\cs_obj"
+          }
+
+          $objectFiles = Get-ChildItem "build\*.o" | Select-Object -ExpandProperty FullName
+          
+          if ($objectFiles) {
+            lld-link /OUT:DOS-Calcle.exe $objectFiles
+          } else {
+            Write-Error "No object files found to link!"
+            exit 1
+          }
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DOS-Calcle-Binary
+          path: DOS-Calcle.exe

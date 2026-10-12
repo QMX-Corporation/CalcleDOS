@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0-Only
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install essential development tools, Clang, LLD, GNU Assembler, Perl, and curl/wget for .NET
+RUN apt-get update && apt-get install -y \
+    build-utils \
+    clang \
+    lld \
+    binutils \
+    perl \
+    curl \
+    git \
+    wget \
+    apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install .NET 9 SDK
+RUN wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh \
+    && chmod +x dotnet-install.sh \
+    && ./dotnet-install.sh --version 9.0.1xx --install-dir /usr/share/dotnet \
+    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
+    && rm dotnet-install.sh
+
+WORKDIR /workspace

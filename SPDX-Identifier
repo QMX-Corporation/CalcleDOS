@@ -1,0 +1,21 @@
+========================================================================
+SPDX LICENSE IDENTIFIER NOTICE
+========================================================================
+
+This project, CalcleDOS, utilizes the SPDX (Software Package Data 
+Exchange) standard to manage source code licensing efficiently and avoid 
+redundancy across individual files.
+
+Instead of including the full text of the GNU General Public License 
+version 2.0 (GPL-2.0-Only) in every single source file, each file in this 
+repository contains the standardized SPDX header on its first line:
+
+    // SPDX-License-Identifier: GPL-2.0-Only
+
+This legally binds the individual source file to the terms of the GPLv2, 
+as provided in the main LICENSE file located in the root directory of 
+this repository.
+
+For more information about the SPDX standard, please visit:
+https://spdx.dev/
+========================================================================
