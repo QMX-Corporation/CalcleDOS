@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0-Only
+
+name: AI Code Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    name: GitHub Copilot PR Code Review
+    runs-on: ubuntu-latest
+    if: github.actor != 'dev12124'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Copilot Code Analysis & Line Comments
+        uses: github/copilot-actions/pr-reviewer@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: "Analyze this Pull Request for code quality, potential bugs, syntax compliance, and memory safety across C, C++, C#, and Assembly. Leave direct line comments pointing out improvements."
